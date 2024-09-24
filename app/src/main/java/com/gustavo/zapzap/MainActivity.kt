@@ -9,11 +9,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.CameraAlt
@@ -60,38 +63,46 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-data class NavItem(
+sealed class NavItem(
     val icon: ImageVector,
     val label: String
-)
+) {
+    data object Chats: NavItem(
+        icon = Icons.AutoMirrored.Filled.Message,
+        label = "Chats"
+    )
+    data object Atualizacoes: NavItem(
+        icon = Icons.Default.CircleNotifications,
+        label = "Atualizações"
+    )
+    data object Comunidades: NavItem(
+        icon = Icons.Default.People,
+        label = "Comunidades"
+    )
+    data object Chamadas: NavItem(
+        icon = Icons.Default.Phone,
+        label = "Chamadas"
+    )
+}
 
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun App() {
     val listaIconsBottomBar = remember{
         listOf(
-            NavItem(
-                icon = Icons.AutoMirrored.Filled.Message,
-                label = "Chats"
-            ),
-            NavItem(
-                icon = Icons.Default.CircleNotifications,
-                label = "Atualizações"
-            ),
-            NavItem(
-                icon = Icons.Default.People,
-                label = "Comunidades"
-            ),
-            NavItem(
-                icon = Icons.Default.Phone,
-                label = "Chamadas"
-            )
+            NavItem.Chats,
+            NavItem.Atualizacoes,
+            NavItem.Comunidades,
+            NavItem.Chamadas
         )
     }
 
     var selectedItem by remember {
         mutableStateOf(listaIconsBottomBar.first())
+    }
+    val pagerState = rememberPagerState {
+        listaIconsBottomBar.size
     }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -130,7 +141,18 @@ fun App() {
             }
         }
     ) { innerPadding ->
-        ChatListScreen(Modifier.padding(innerPadding))
+        HorizontalPager(
+            pagerState,
+            Modifier.padding(innerPadding)
+        ) { page ->
+            val item = listaIconsBottomBar[page]
+            when(item) {
+                NavItem.Chats -> ChatListScreen()
+                NavItem.Chamadas -> ChamadasScreen()
+                NavItem.Comunidades -> ComunidadesScreen()
+                NavItem.Atualizacoes -> AtualizacoesScreen()
+            }
+        }
     }
 }
 
@@ -140,6 +162,45 @@ fun ChatListScreen(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()){
         Text(
             "Lista de chats",
+            modifier.align(Alignment.Center),
+            style = TextStyle.Default.copy(
+                fontSize = 32.sp
+            )
+        )
+    }
+}
+
+@Composable
+fun AtualizacoesScreen(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize()){
+        Text(
+            "Atualizações de Status",
+            modifier.align(Alignment.Center),
+            style = TextStyle.Default.copy(
+                fontSize = 32.sp
+            )
+        )
+    }
+}
+
+@Composable
+fun ComunidadesScreen(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize()){
+        Text(
+            "Lista de comunidades",
+            modifier.align(Alignment.Center),
+            style = TextStyle.Default.copy(
+                fontSize = 32.sp
+            )
+        )
+    }
+}
+
+@Composable
+fun ChamadasScreen(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize()){
+        Text(
+            "Lista de chamadas",
             modifier.align(Alignment.Center),
             style = TextStyle.Default.copy(
                 fontSize = 32.sp
