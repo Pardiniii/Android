@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CircleNotifications
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,7 +45,6 @@ import androidx.compose.ui.unit.sp
 import com.gustavo.zapzap.ui.theme.ZapZapTheme
 
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalMaterial3Api::class)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,25 +57,78 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-sealed class NavItem(
+class BottomAppBarItem(
     val icon: ImageVector,
     val label: String
+)
+
+class TopAppBarItem(
+    val title: String,
+    val icons: List<ImageVector> = emptyList()
+)
+
+sealed class ScreenItem(
+    val topAppItem: TopAppBarItem,
+    val bottomAppItem: BottomAppBarItem
 ) {
-    data object Chats: NavItem(
-        icon = Icons.AutoMirrored.Filled.Message,
-        label = "Chats"
+    data object Chats : ScreenItem(
+
+        topAppItem = TopAppBarItem(
+            title = "Zap Zap",
+            icons = listOf(
+                Icons.Default.CameraAlt,
+                Icons.Default.MoreVert
+            )
+        ),
+        bottomAppItem = BottomAppBarItem(
+            icon = Icons.AutoMirrored.Filled.Message,
+            label = "Chats"
+        )
+
     )
-    data object Atualizacoes: NavItem(
-        icon = Icons.Default.CircleNotifications,
-        label = "Atualizações"
+
+    data object Atualizacoes : ScreenItem(
+        topAppItem = TopAppBarItem(
+            title = "Atualizações",
+            icons = listOf(
+                Icons.Default.CameraAlt,
+                Icons.Default.Search,
+                Icons.Default.MoreVert
+            )
+        ),
+        bottomAppItem = BottomAppBarItem(
+            icon = Icons.Default.CircleNotifications,
+            label = "Atualizações"
+        )
     )
-    data object Comunidades: NavItem(
-        icon = Icons.Default.People,
-        label = "Comunidades"
+
+    data object Comunidades : ScreenItem(
+        topAppItem = TopAppBarItem(
+            title = "Comunidades",
+            icons = listOf(
+                Icons.Default.CameraAlt,
+                Icons.Default.MoreVert
+            )
+        ),
+        bottomAppItem = BottomAppBarItem(
+            icon = Icons.Default.People,
+            label = "Comunidades"
+        )
     )
-    data object Chamadas: NavItem(
-        icon = Icons.Default.Phone,
-        label = "Chamadas"
+
+    data object Chamadas : ScreenItem(
+        topAppItem = TopAppBarItem(
+            title = "Chamadas",
+            icons = listOf(
+                Icons.Default.CameraAlt,
+                Icons.Default.Search,
+                Icons.Default.MoreVert
+            )
+        ),
+        bottomAppItem = BottomAppBarItem(
+            icon = Icons.Default.Phone,
+            label = "Chamadas"
+        )
     )
 }
 
@@ -83,28 +136,28 @@ sealed class NavItem(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 fun App() {
-    val listaIconsBottomBar = remember{
+    val screens = remember {
         listOf(
-            NavItem.Chats,
-            NavItem.Atualizacoes,
-            NavItem.Comunidades,
-            NavItem.Chamadas
+            ScreenItem.Chats,
+            ScreenItem.Atualizacoes,
+            ScreenItem.Comunidades,
+            ScreenItem.Chamadas
         )
     }
 
-    var selectedItem by remember {
-        mutableStateOf(listaIconsBottomBar.first())
+    var currentScreen by remember {
+        mutableStateOf(screens.first())
     }
     val pagerState = rememberPagerState {
-        listaIconsBottomBar.size
+        screens.size
     }
 
-    LaunchedEffect(selectedItem) {
-        pagerState.animateScrollToPage(listaIconsBottomBar.indexOf(selectedItem))
+    LaunchedEffect(currentScreen) {
+        pagerState.animateScrollToPage(screens.indexOf(currentScreen))
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        selectedItem = listaIconsBottomBar[pagerState.currentPage]
+    LaunchedEffect(pagerState.targetPage) {
+        currentScreen = screens[pagerState.targetPage]
     }
 
 
@@ -113,34 +166,38 @@ fun App() {
         topBar = {
             TopAppBar(
                 title = {
-                    Text("ZapZap")
+                    Text(currentScreen.topAppItem.title)
                 },
                 //colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xff234567), titleContentColor = Color.White),
-                    actions = {
+                actions = {
                     Row(
                         Modifier.padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        Icon(Icons.Default.MoreVert, contentDescription = null)
+                        currentScreen.topAppItem.icons.forEach{icon ->
+                            Icon(icon, contentDescription = null)
+                        }
                     }
                 }
             )
         }, bottomBar = {
             BottomAppBar() {
-                listaIconsBottomBar.forEach { NavItem ->
-                    NavigationBarItem(
-                        selected = NavItem == selectedItem,
-                        onClick = {
-                            selectedItem = NavItem
-                        },
-                        icon = {
-                            Icon(NavItem.icon, contentDescription = null)
-                        },
-                        label = {
-                            Text(NavItem.label)
-                        }
-                    )
+                screens.forEach { screen ->
+                    with(screen.bottomAppItem){
+                        NavigationBarItem(
+                            selected = screen == currentScreen,
+                            onClick = {
+                                currentScreen = screen
+                            },
+                            icon = {
+                                Icon(icon, contentDescription = null)
+                            },
+                            label = {
+                                Text(label)
+                            }
+                        )
+                    }
+
                 }
             }
         }
@@ -149,12 +206,12 @@ fun App() {
             pagerState,
             Modifier.padding(innerPadding)
         ) { page ->
-            val item = listaIconsBottomBar[page]
-            when(item) {
-                NavItem.Chats -> ChatListScreen()
-                NavItem.Chamadas -> ChamadasScreen()
-                NavItem.Comunidades -> ComunidadesScreen()
-                NavItem.Atualizacoes -> AtualizacoesScreen()
+            val item = screens[page]
+            when (item) {
+                ScreenItem.Chats -> ChatListScreen()
+                ScreenItem.Chamadas -> ChamadasScreen()
+                ScreenItem.Comunidades -> ComunidadesScreen()
+                ScreenItem.Atualizacoes -> AtualizacoesScreen()
             }
         }
     }
@@ -163,7 +220,7 @@ fun App() {
 
 @Composable
 fun ChatListScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()){
+    Box(modifier.fillMaxSize()) {
         Text(
             "Lista de chats",
             modifier.align(Alignment.Center),
@@ -176,7 +233,7 @@ fun ChatListScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun AtualizacoesScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()){
+    Box(modifier.fillMaxSize()) {
         Text(
             "Atualizações de Status",
             modifier.align(Alignment.Center),
@@ -189,7 +246,7 @@ fun AtualizacoesScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun ComunidadesScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()){
+    Box(modifier.fillMaxSize()) {
         Text(
             "Lista de comunidades",
             modifier.align(Alignment.Center),
@@ -202,7 +259,7 @@ fun ComunidadesScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun ChamadasScreen(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()){
+    Box(modifier.fillMaxSize()) {
         Text(
             "Lista de chamadas",
             modifier.align(Alignment.Center),
